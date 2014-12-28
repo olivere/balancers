@@ -5,6 +5,7 @@ package balancers
 
 import (
 	"runtime"
+	"time"
 )
 
 const (
@@ -15,4 +16,7 @@ const (
 var (
 	// UserAgent is sent with all heartbeat requests.
 	UserAgent = "balancers/" + Version + " (" + runtime.GOOS + "-" + runtime.GOARCH + ")"
+
+	// DefaultHeartbeatDuration is the default time between heartbeat messages.
+	DefaultHeartbeatDuration = 30 * time.Second
 )

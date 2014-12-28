@@ -8,24 +8,33 @@ Balancers provides implementations of HTTP load-balancers.
 
 ## What does it do?
 
-Balancer gives you a `http.Client` from [net/http](http://golang.org/pkg/net/http)
-that rewrites your requests according to its rules.
+Balancers gives you a `http.Client` from [net/http](http://golang.org/pkg/net/http)
+that rewrites your requests' scheme, host, and userinfo according to the
+rules of a balancer. A balancer is simply an algorithm to pick the host for
+the next request a `http.Client`.
 
 ## How does it work?
 
-Let's start by an example. Suppose you have a cluster of two servers
-(on two different URLs) and you want to load balance between.
-If you want to do this in a round-robin fashion, you can use code like this:
+Suppose you have a cluster of two servers (on two different URLs) and you
+want to load balance between. A very simple implementation can be done with
+the round-robin scheduling algorithm. It iterates through the list of
+available hosts and restarts at the first when the end is reached. Here's
+some code that illustrates that:
 
 ```go
-    balancer, err := roundrobin.NewBalancerFromURL("https://server1.com", "https://server2.com")
-    ...
-    client := balancer.Client() // Get a HTTP client for the round-robin balancer
-    ...
-    client.Get("http://example.com/path1?foo=bar") // will rewrite URL to https://server1.com/path1?foo=bar
-    client.Get("http://example.com/path1?foo=bar") // will rewrite URL to https://server2.com/path1?foo=bar
-    client.Get("http://example.com/path1?foo=bar") // will rewrite URL to https://server1.com/path1?foo=bar
-    client.Get("/path1?foo=bar") // will rewrite URL to https://server2.com/path1?foo=bar
+// Get a balancer that performs round-robin scheduling between two servers.
+balancer, err := roundrobin.NewBalancerFromURL("https://server1.com", "https://server2.com")
+
+// Get a HTTP client based on that balancer.
+client := balancers.NewClient(balancer) // Get a HTTP client for the round-robin balancer
+
+// Now request some data. The scheme, host, and user info will be rewritten
+// by the balancer; you'll never get data from http://example.com, only data
+// from http://server1.com or http://server2.com.
+client.Get("http://example.com/path1?foo=bar") // rewritten to https://server1.com/path1?foo=bar
+client.Get("http://example.com/path1?foo=bar") // rewritten to https://server2.com/path1?foo=bar
+client.Get("http://example.com/path1?foo=bar") // rewritten to https://server1.com/path1?foo=bar
+client.Get("/path1?foo=bar") // rewritten to https://server2.com/path1?foo=bar
 ```
 
 ## Status

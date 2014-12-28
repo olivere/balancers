@@ -12,6 +12,7 @@ import (
 
 // Connection is a single connection to a host. It is defined by a URL.
 // It also maintains state in the form that a connection can be broken.
+// TODO(oe) Not sure if this abstraction is necessary.
 type Connection interface {
 	// URL to the host.
 	URL() *url.URL
@@ -34,7 +35,7 @@ type HttpConnection struct {
 func NewHttpConnection(url *url.URL) *HttpConnection {
 	c := &HttpConnection{
 		url:               url,
-		heartbeatDuration: 30 * time.Second,
+		heartbeatDuration: DefaultHeartbeatDuration,
 		heartbeatStop:     make(chan bool),
 	}
 	c.checkBroken()
@@ -80,11 +81,13 @@ func (c *HttpConnection) checkBroken() {
 	c.Lock()
 	defer c.Unlock()
 
+	// TODO(oe) Can we use HEAD?
 	req, err := http.NewRequest("GET", c.url.String(), nil)
 	if err != nil {
 		c.broken = true
 		return
 	}
+	// Add UA to heartbeat requests.
 	req.Header.Add("User-Agent", UserAgent)
 
 	// Use a standard HTTP client with a timeout of 5 seconds.

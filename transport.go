@@ -5,26 +5,27 @@
 // Most of the code here is taken from the Google OAuth2 client library
 // at https://github.com/golang/oauth2,
 // especially https://github.com/golang/oauth2/blob/master/transport.go.
-package roundrobin
+package balancers
 
 import (
 	"io"
 	"net/http"
 	"sync"
-
-	"github.com/olivere/balancers"
 )
 
-// Transport implements a http Transport for a round-robin http balancer.
+// Transport implements a http Transport for a HTTP load balancer.
 type Transport struct {
 	Base http.RoundTripper
 
-	balancer *Balancer
+	balancer Balancer
 
 	mu     sync.Mutex
 	modReq map[*http.Request]*http.Request
 }
 
+// RoundTrip is the core of the balancers package. It accepts a request,
+// replaces host, scheme, and port with the URl provided by the balancer,
+// executes it and returns the response to the caller.
 func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	conn, err := t.balancer.Get()
 	if err != nil {
@@ -49,6 +50,7 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return res, nil
 }
 
+// CancelRequest cancels the given request (if canceling is available).
 func (t *Transport) CancelRequest(r *http.Request) {
 	type canceler interface {
 		CancelRequest(*http.Request)
@@ -69,7 +71,9 @@ func (t *Transport) base() http.RoundTripper {
 	return http.DefaultTransport
 }
 
-func modifyRequest(r *http.Request, conn balancers.Connection) error {
+// modifyRequest exchanges the HTTP request scheme, host, and userinfo
+// by the URL the connection returns.
+func modifyRequest(r *http.Request, conn Connection) error {
 	url := conn.URL()
 	if url.Scheme != "" {
 		r.URL.Scheme = url.Scheme
@@ -83,6 +87,7 @@ func modifyRequest(r *http.Request, conn balancers.Connection) error {
 	return nil
 }
 
+// cloneRequest makes a duplicate of the request.
 func cloneRequest(r *http.Request) *http.Request {
 	rc := new(http.Request)
 	*rc = *r
@@ -107,6 +112,8 @@ func (t *Transport) setModReq(orig, mod *http.Request) {
 	}
 }
 
+// onEOFReader is a reader that executes a function when io.EOF is read
+// or the reader is closed.
 type onEOFReader struct {
 	rc io.ReadCloser
 	fn func()
@@ -133,8 +140,10 @@ func (r *onEOFReader) runFunc() {
 	}
 }
 
+/*
 type errorTransport struct{ err error }
 
 func (t errorTransport) RoundTrip(*http.Request) (*http.Response, error) {
 	return nil, t.err
 }
+*/

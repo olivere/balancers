@@ -71,7 +71,7 @@ func TestBalancer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := balancer.Client()
+	client := balancers.NewClient(balancer)
 	client.Get(server1.URL)
 	client.Get(server1.URL)
 	client.Get(server1.URL)
@@ -114,7 +114,7 @@ func TestBalancerWithBrokenConnections(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := balancer.Client()
+	client := balancers.NewClient(balancer)
 	client.Get(server1.URL)
 	client.Get(server1.URL)
 	client.Get(server1.URL)
@@ -157,7 +157,7 @@ func TestBalancerRewritesSchemeAndURLButNotPathOrQuery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := balancer.Client()
+	client := balancers.NewClient(balancer)
 	client.Get(server.URL + "/path?foo=bar&n=1")
 	client.Get(server.URL + "/path?n=2")
 	client.Get(server.URL + "/no/3")

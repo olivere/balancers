@@ -1,15 +1,13 @@
 // Copyright (c) 2014-2015 Oliver Eilhard. All rights reserved.
 // Use of this source code is governed by the MIT license.
 // See LICENSE file for details.
-package roundrobin
+package balancers
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
-
-	"github.com/olivere/balancers"
 )
 
 func TestCloseRequest(t *testing.T) {
@@ -68,7 +66,7 @@ func TestModifyRequest(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		conn := balancers.NewHttpConnection(url)
+		conn := NewHttpConnection(url)
 
 		err = modifyRequest(req, conn)
 		if err != test.Expected {

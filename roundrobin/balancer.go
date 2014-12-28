@@ -4,21 +4,22 @@
 package roundrobin
 
 import (
-	"net/http"
 	"net/url"
 	"sync"
 
 	"github.com/olivere/balancers"
 )
 
-// Balancer is a load-balancer with a round-robin implementation of HTTP connections.
+// Balancer implements a round-robin balancer.
 type Balancer struct {
 	sync.Mutex // guards the following variables
 	conns      []balancers.Connection
 	idx        int // index into conns
 }
 
-// NewBalancer creates a new round-robin balancer.
+// NewBalancer creates a new round-robin balancer. It can be initializes by
+// a variable number of connections. To use plain URLs instead of
+// connections, use NewBalancerFromURL.
 func NewBalancer(conns ...balancers.Connection) (balancers.Balancer, error) {
 	b := &Balancer{
 		conns: make([]balancers.Connection, 0),
@@ -30,8 +31,7 @@ func NewBalancer(conns ...balancers.Connection) (balancers.Balancer, error) {
 }
 
 // NewBalancerFromURL creates a new round-robin balancer for the
-// given list of URLs.
-// It returns an error if any of the URLs is invalid.
+// given list of URLs. It returns an error if any of the URLs is invalid.
 func NewBalancerFromURL(urls ...string) (*Balancer, error) {
 	b := &Balancer{
 		conns: make([]balancers.Connection, 0),
@@ -47,6 +47,7 @@ func NewBalancerFromURL(urls ...string) (*Balancer, error) {
 }
 
 // Get returns a connection from the balancer that can be used for the next request.
+// ErrNoConn is returns when no connection is available.
 func (b *Balancer) Get() (balancers.Connection, error) {
 	b.Lock()
 	defer b.Unlock()
@@ -78,20 +79,11 @@ func (b *Balancer) Connections() []balancers.Connection {
 	conns := make([]balancers.Connection, len(b.conns))
 	for i, c := range b.conns {
 		if oc, ok := c.(*balancers.HttpConnection); ok {
+			// Make a clone
 			cr := new(balancers.HttpConnection)
 			*cr = *oc
 			conns[i] = cr
 		}
 	}
 	return conns
-}
-
-// Client returns a http Client that performs a round-robin algorithm
-// between the URLs provided in NewClient.
-func (b *Balancer) Client() *http.Client {
-	return &http.Client{
-		Transport: &Transport{
-			balancer: b,
-		},
-	}
 }
