@@ -16,10 +16,10 @@ the next request a `http.Client`.
 ## How does it work?
 
 Suppose you have a cluster of two servers (on two different URLs) and you
-want to load balance between. A very simple implementation can be done with
-the round-robin scheduling algorithm. It iterates through the list of
-available hosts and restarts at the first when the end is reached. Here's
-some code that illustrates that:
+want to load balance between them. A very simple implementation can be done
+with the [round-robin scheduling algorithm](http://en.wikipedia.org/wiki/Round-robin_scheduling).
+Round-robin iterates through the list of available hosts and restarts
+at the first when the end is reached. Here's some code that illustrates that:
 
 ```go
 // Get a balancer that performs round-robin scheduling between two servers.
