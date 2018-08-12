@@ -80,10 +80,25 @@ func (b *Balancer) Connections() []balancers.Connection {
 	for i, c := range b.conns {
 		if oc, ok := c.(*balancers.HttpConnection); ok {
 			// Make a clone
-			cr := new(balancers.HttpConnection)
-			*cr = *oc
+			cr := &simpleConn{
+				url:    oc.URL(),
+				broken: oc.IsBroken(),
+			}
 			conns[i] = cr
 		}
 	}
 	return conns
 }
+
+var (
+	// Ensure that simpleConn make implements balancers.Connection.
+	_ balancers.Connection = (*simpleConn)(nil)
+)
+
+type simpleConn struct {
+	url    *url.URL
+	broken bool
+}
+
+func (c *simpleConn) URL() *url.URL  { return c.url }
+func (c *simpleConn) IsBroken() bool { return c.broken }

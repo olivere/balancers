@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync/atomic"
 	"testing"
 
 	"github.com/olivere/balancers"
@@ -173,5 +174,49 @@ func TestBalancerRewritesSchemeAndURLButNotPathOrQuery(t *testing.T) {
 	}
 	if visited[2] != "/no/3" {
 		t.Errorf("expected 3rd URL to be %q; got: %q", "/no/3", visited[2])
+	}
+}
+
+func BenchmarkBalancer(b *testing.B) {
+	var (
+		visited1 int64
+		visited2 int64
+	)
+
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only count non-heartbeat requests
+		if r.Header.Get("User-Agent") != balancers.UserAgent {
+			atomic.AddInt64(&visited1, 1)
+		}
+	}))
+	defer server1.Close()
+
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only count non-heartbeat requests
+		if r.Header.Get("User-Agent") != balancers.UserAgent {
+			atomic.AddInt64(&visited2, 1)
+		}
+	}))
+	defer server2.Close()
+
+	balancer, err := NewBalancerFromURL(server1.URL, server2.URL)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	client := balancers.NewClient(balancer)
+
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		res, err := client.Get(server1.URL)
+		if err != nil {
+			b.Fatal(err)
+		}
+		res.Body.Close()
+	}
+
+	if want, have := int64(b.N), visited1+visited2; want != have {
+		b.Fatalf("expected %d visits; got: %d", want, have)
 	}
 }
