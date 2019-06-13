@@ -45,7 +45,7 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}
 	res.Body = &onEOFReader{
 		rc: res.Body,
-		fn: func() { t.setModReq(rc, nil) },
+		fn: func() { t.setModReq(r, nil) },
 	}
 	return res, nil
 }
