@@ -4,8 +4,8 @@ env:
 - GO111MODULE=on
 - GO111MODULE=off
 go:
-- "1.10.x"
 - "1.11.x"
+- "1.12.x"
 install:
 - go get ./...
 script:
