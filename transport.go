@@ -74,6 +74,9 @@ func (t *Transport) base() http.RoundTripper {
 // modifyRequest exchanges the HTTP request scheme, host, and userinfo
 // by the URL the connection returns.
 func modifyRequest(r *http.Request, conn Connection) error {
+	if r.URL.Scheme != "" {
+		return nil
+	}
 	url := conn.URL()
 	if url.Scheme != "" {
 		r.URL.Scheme = url.Scheme
